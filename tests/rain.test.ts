@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { dateRange, latestState, Reading, sessions, thaiDay, validateReading, wetMinutes, rainTotals, thaiTime, thaiDate } from "../lib/rain";
+import { dateRange, latestState, Reading, sessions, thaiDay, validateReading, wetMinutes, rainTotals, thaiTime, thaiDate, rainStatus, newestReading } from "../lib/rain";
 const now = Date.parse("2026-10-05T10:00:00Z");
 const row = (time: string, wet = true, deviceId = "room-01"): Reading => ({ eventId: `${deviceId}-${time.replace(/\W/g, "")}`, deviceId, sensorType: "rain", source: "real", wet, observedAt: time, receivedAt: time });
 test("silence never confirms dry or online", () => {
@@ -76,4 +76,29 @@ test("empty and dry-only reports never add wet days or chart minutes", () => {
     assert.equal(totals.byDay.size, 0);
     assert.equal(totals.byHour.size, 0);
   }
+});
+
+test("rain recency has exact one-minute and ten-minute boundaries", () => {
+  const last = row("2026-10-05T09:50:00Z");
+  const start = Date.parse(last.observedAt);
+  assert.deepEqual(rainStatus(last, start + 59_999), { kind: "fresh", minutesAgo: 0 });
+  assert.deepEqual(rainStatus(last, start + 60_000), { kind: "recent", minutesAgo: 1 });
+  assert.deepEqual(rainStatus(last, start + 599_999), { kind: "recent", minutesAgo: 9 });
+  assert.deepEqual(rainStatus(last, start + 600_000), { kind: "stale", minutesAgo: 10 });
+  assert.equal(sessions([last], start + 240_000)[0].endKind, "estimated");
+  assert.equal(rainStatus(last, start + 240_000).kind, "recent");
+});
+test("new wet reports reset the timer and explicit dry overrides earlier wet", () => {
+  const readings = [row("2026-10-05T09:51:00Z"), row("2026-10-05T09:59:20Z")];
+  assert.equal(rainStatus(newestReading(readings), now).kind, "fresh");
+  readings.push(row("2026-10-05T09:59:40Z", false));
+  assert.equal(rainStatus(newestReading(readings), now).kind, "dry");
+  assert.equal(rainStatus(readings.at(-1)!, now + 600_000).kind, "stale");
+  assert.equal(rainStatus(null, now).kind, "empty");
+});
+test("recency survives Bangkok midnight and compares zoned reports by actual time", () => {
+  const last = newestReading([row("2026-10-06T00:00:00+07:00"), row("2026-10-05T16:59:00Z")]);
+  assert.equal(last?.observedAt, "2026-10-06T00:00:00+07:00");
+  assert.deepEqual(rainStatus(row("2026-10-05T16:59:00Z"), Date.parse("2026-10-06T00:08:00+07:00")), { kind: "recent", minutesAgo: 9 });
+  assert.equal(thaiTime("2026-10-05T15:30:00Z"), "22:30");
 });

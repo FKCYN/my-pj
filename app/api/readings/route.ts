@@ -1,5 +1,5 @@
 import { authorizedDevice, canRead, json, storageMode } from "@/lib/server";
-import { listReadings, saveReading } from "@/lib/store";
+import { listReadings, saveReading, latestReading } from "@/lib/store";
 import { validateReading, dateRange } from "@/lib/rain";
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -33,7 +33,7 @@ export async function GET(request: Request) {
     const validDay = (day: string) => pattern.test(day) && Number.isFinite(Date.parse(day)) && new Date(day).toISOString().slice(0, 10) === day;
     if (!validDay(from) || !validDay(to) || !Number.isFinite(duration) || duration < 0 || duration > 30 * 86_400_000 || !["real", "test", "all"].includes(source)) return json({ error: "ระบุ from/to เป็น YYYY-MM-DD ไม่เกิน 31 วัน และ source เป็น real/test/all" }, 400);
     const range = dateRange(from, to);
-    const data = await listReadings(range.from, range.to, source);
-    return json({ ...data, storage: storageMode(), fetchedAt: new Date().toISOString() });
+    const [data, latest] = await Promise.all([listReadings(range.from, range.to, source), latestReading(source)]);
+    return json({ ...data, latestReading: latest, storage: storageMode(), fetchedAt: new Date().toISOString() });
   } catch { return json({ error: "อ่านข้อมูลไม่ได้ กรุณาตรวจการเชื่อมต่อและ SQL schema" }, 503); }
 }

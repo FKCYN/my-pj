@@ -8,6 +8,21 @@ export type RainSession = {
   endKind: "dry" | "estimated" | "ongoing"; samples: number;
 };
 export const GAP_MS = 3 * 60_000;
+// UI recency is independent of how historical rain sessions are grouped.
+export const RAIN_RECENCY_MS = 10 * 60_000;
+export type RainStatus = { kind: "fresh" | "recent" | "stale" | "dry" | "empty"; minutesAgo: number | null };
+export function newestReading(readings: Reading[]): Reading | null {
+  return readings.reduce<Reading | null>((last, r) => !last || Date.parse(r.observedAt) > Date.parse(last.observedAt) || (Date.parse(r.observedAt) === Date.parse(last.observedAt) && Date.parse(r.receivedAt) > Date.parse(last.receivedAt)) ? r : last, null);
+}
+export function rainStatus(last: Reading | null, now = Date.now()): RainStatus {
+  if (!last) return { kind: "empty", minutesAgo: null };
+  const age = Math.max(0, now - Date.parse(last.observedAt));
+  if (!Number.isFinite(age)) return { kind: "empty", minutesAgo: null };
+  const minutesAgo = Math.floor(age / 60_000);
+  if (age >= RAIN_RECENCY_MS) return { kind: "stale", minutesAgo };
+  if (!last.wet) return { kind: "dry", minutesAgo };
+  return { kind: age < 60_000 ? "fresh" : "recent", minutesAgo };
+}
 // Reuse ICU formatters: constructing one per sample blocks menu rendering.
 const dayFormatter = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok", year: "numeric", month: "2-digit", day: "2-digit" });
 const timeFormatter = new Intl.DateTimeFormat("th-TH", { timeZone: "Asia/Bangkok", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });

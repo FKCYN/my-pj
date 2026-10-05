@@ -2,7 +2,7 @@ import "server-only";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
-import { Reading } from "./rain";
+import { Reading, newestReading } from "./rain";
 import { storageMode, supabaseAdmin } from "./server";
 const file = path.join(process.cwd(), ".data", "readings.json");
 const localState = globalThis as typeof globalThis & { fkcynWriteQueue?: Promise<unknown> };
@@ -57,4 +57,17 @@ export async function listReadings(from: string, to: string, source: string): Pr
     if (!data || data.length < 1000) return { readings, truncated: false };
   }
   return { readings, truncated: true };
+}
+
+// Current status must not depend on the dates selected in the rain archive.
+export async function latestReading(source: string): Promise<Reading | null> {
+  if (storageMode() === "local") {
+    const readings = (await localRows()).filter(r => source === "all" || r.source === source);
+    return newestReading(readings);
+  }
+  let query = supabaseAdmin().from("fkcyn_readings").select("*").order("observed_at", { ascending: false }).order("received_at", { ascending: false }).limit(1);
+  if (source !== "all") query = query.eq("source", source);
+  const { data, error } = await query.maybeSingle();
+  if (error) throw new Error("STORAGE_ERROR");
+  return data ? fromDb(data) : null;
 }
