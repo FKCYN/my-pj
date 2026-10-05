@@ -112,7 +112,7 @@ export default function RadarMap({ place }: { place: { name: string; lat: number
   const time = displayedTime ? new Date(displayedTime * 1000).toISOString() : null;
   const delayed = !!(data && checkedAt && checkedAt - data.frames.at(-1)!.time * 1000 > 30 * 60_000);
   return <section className="card radar-card">
-    <div className="card-heading"><div><h3>เรดาร์ฝน</h3></div><button className="icon-button" aria-label="รีเฟรชเรดาร์" disabled={loading} onClick={() => setVersion(v => v + 1)}><RefreshCw size={17} className={loading ? "spinning" : ""} /></button></div>
+    <div className="card-heading"><div><h2>เรดาร์ฝน</h2></div><button className="icon-button" aria-label="รีเฟรชเรดาร์" disabled={loading} onClick={() => setVersion(v => v + 1)}><RefreshCw size={17} className={loading ? "spinning" : ""} /></button></div>
     <p className="radar-description"><MapPin size={14} />{place.name}<span>ย้อนหลัง 2 ชม.</span></p>
     <div className="radar-map-wrap"><div ref={container} className="radar-map" role="region" aria-label={`แผนที่เรดาร์ฝนบริเวณ${place.name}`} />{(!ready || !data) && <div className="radar-placeholder"><CloudRain size={34} /><p>{error || "กำลังเปิดแผนที่ฝน…"}</p></div>}<span className="radar-time">เวลาเฟรม {time ? `${thaiDate(time, true)} · ${thaiTime(time)}` : "—"} น. {frameLoading && <small>กำลังโหลด…</small>}</span></div>
     {(error || tileError || delayed) && <p className="radar-error" role="status">{error || tileError || "ข้อมูลเรดาร์ล่าสุดล่าช้ากว่า 30 นาที กรุณาตรวจเวลาเฟรมก่อนใช้งาน"}</p>}
