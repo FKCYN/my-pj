@@ -121,3 +121,5 @@
 @media(max-width:650px){.page-heading h1{font-size:27px}.page-heading{margin-bottom:16px}.hero-content h2{font-size:32px}.rain-hero{min-height:340px;height:350px}.mode-note{display:none}.stat-card{min-height:100px}.login-page .login-art h1,.login-art>p{display:none}.login-art{min-height:0;padding-bottom:0}.login-panel h2{font-size:27px}.login-panel{padding:26px 22px}.data-help{margin-bottom:16px}.section-title{gap:12px}.rain-hero .hero-explainer{font-size:12px}}
 
 @media(max-width:650px){.sidebar nav{margin-top:0;align-items:center;height:100%}}
+
+@media(max-width:650px){.topbar{height:64px}.page-heading{padding:14px 0 10px;margin-bottom:8px;align-items:center;gap:8px}.page-heading h1{margin:0;line-height:1.4;font-size:26px}.location-chip{min-height:40px}.data-toolbar{margin-bottom:16px}.topbar .icon-button,.data-toolbar>.refresh-button{width:44px;height:44px}}
