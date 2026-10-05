@@ -119,3 +119,5 @@
 .stat-card{min-height:120px;padding-bottom:22px}.data-help{margin:12px 0 22px;color:#657664;font-size:12px}.data-help summary{display:flex;align-items:center;gap:6px;cursor:pointer;min-height:32px;width:fit-content}.data-help summary::after{content:'+';margin-left:8px}.data-help[open] summary::after{content:'−'}.data-help p{max-width:640px;line-height:1.8;margin:4px 0 12px}
 .table-note{font-size:11px;max-width:640px}.login-panel h2{margin-top:28px}.login-page .login-art h1{font-size:40px}.login-panel{box-shadow:0 8px 30px rgba(49,68,51,.05)}
 @media(max-width:650px){.page-heading h1{font-size:27px}.page-heading{margin-bottom:16px}.hero-content h2{font-size:32px}.rain-hero{min-height:340px;height:350px}.mode-note{display:none}.stat-card{min-height:100px}.login-page .login-art h1,.login-art>p{display:none}.login-art{min-height:0;padding-bottom:0}.login-panel h2{font-size:27px}.login-panel{padding:26px 22px}.data-help{margin-bottom:16px}.section-title{gap:12px}.rain-hero .hero-explainer{font-size:12px}}
+
+@media(max-width:650px){.sidebar nav{margin-top:0;align-items:center;height:100%}}
