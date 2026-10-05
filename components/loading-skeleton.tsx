@@ -1,17 +1,11 @@
 import { CSSProperties } from "react";
+import { CloudRain, Droplets, Wind } from "lucide-react";
 export function Bone({ width = "100%", height = 16 }: { width?: string; height?: number }) {
   return <span className="skeleton-bone" aria-hidden="true" style={{ width, height } as CSSProperties} />;
 }
 export function LoadingCard({ label, children, className = "" }: { label: string; children: React.ReactNode; className?: string }) {
-  return <section className={`card loading-card ${className}`} aria-busy="true" aria-label={label}><span className="sr-only" role="status">{label}</span><div aria-hidden="true">{children}</div></section>;
-}
-export function HistorySkeleton() {
-  return <div className="history-loading" aria-busy="true" aria-label="กำลังโหลดประวัติฝน"><span className="sr-only" role="status">กำลังโหลดประวัติฝน</span><div aria-hidden="true">
-    <div className="stats-grid">{[0,1,2].map(i=><div className="card stat-card" key={i}><Bone width="35px" height={35}/><Bone width="70%"/><Bone width="65%" height={32}/></div>)}</div>
-    <div className="journal-grid"><div className="card loading-card"><Bone width="40%" height={24}/><Bone width="60%"/><div className="skeleton-calendar">{Array.from({length:35},(_,i)=><Bone key={i} height={34}/>)}</div></div><div className="card loading-card"><Bone width="45%" height={24}/><Bone width="40%" height={48}/><div className="skeleton-chart">{Array.from({length:24},(_,i)=><Bone key={i} height={24+(i%5)*19}/>)}</div><Bone/></div></div>
-    <div className="card loading-card history-card"><Bone width="40%" height={24}/>{[0,1,2,3].map(i=><Bone key={i} height={38}/>)}</div>
-  </div></div>;
+  return <section className={`card loading-card ${className}`} aria-busy="true" aria-label={label}><span className="sr-only" role="status">{label}</span><div>{children}</div></section>;
 }
 export function WeatherSkeleton() {
-  return <div className="weather-loading"><LoadingCard label="กำลังโหลดสภาพอากาศ"><Bone width="35%" height={24}/><Bone width="40%" height={70}/><Bone width="60%"/></LoadingCard>{[0,1].map(i=><LoadingCard key={i} label="กำลังโหลดพยากรณ์อากาศ"><Bone width="40%" height={24}/><div className="skeleton-forecast">{[0,1,2,3,4,5,6].map(n=><Bone key={n} height={120}/>)}</div></LoadingCard>)}</div>;
+  return <div className="weather-loading" aria-busy="true"><span className="sr-only" role="status">กำลังโหลดสภาพอากาศ</span><div className="weather-detail-grid"><section className="card current-weather"><div className="card-kicker"><span className="small-orb amber"/> พยากรณ์</div><Bone width="68px" height={68}/><h2><Bone width="90px" height={60}/><small>°C</small></h2><Bone width="60%"/></section><div className="weather-measures">{[{label:"ความชื้น",unit:"%",icon:Droplets},{label:"ลม",unit:"km/h",icon:Wind},{label:"โอกาสฝนชั่วโมงถัดไป",unit:"%",icon:CloudRain}].map(({label,unit,icon:Icon})=><section className="card measurement" key={label}><Icon/><div><p>{label}</p><strong><Bone width="60px" height={30}/><small>{unit}</small></strong></div></section>)}</div></div><section className="card forecast-card"><div className="card-heading"><h3>24 ชั่วโมง</h3><span className="quiet-tag">พยากรณ์</span></div><div className="hourly-forecast">{Array.from({length:8},(_,i)=><div className="forecast-hour" key={i}><Bone width="36px"/><Bone width="24px" height={24}/><Bone width="32px" height={24}/><span className="chance"><Bone width="24px"/>%</span><small>mm</small></div>)}</div></section><section className="card forecast-card"><div className="card-heading"><h3>7 วัน</h3></div><div className="daily-forecast">{Array.from({length:7},(_,i)=><div className="forecast-day" key={i}>{i===0?<span>วันนี้</span>:<Bone width="50px"/>}<Bone width="27px" height={27}/><Bone width="50px" height={22}/><span><Droplets size={13}/><Bone width="24px"/>%</span></div>)}</div></section></div>;
 }
