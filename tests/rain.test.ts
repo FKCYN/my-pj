@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { dateRange, latestState, Reading, sessions, thaiDay, validateReading, wetMinutes } from "../lib/rain";
+import { dateRange, latestState, Reading, sessions, thaiDay, validateReading, wetMinutes, rainTotals, thaiTime, thaiDate } from "../lib/rain";
 const now = Date.parse("2026-10-05T10:00:00Z");
 const row = (time: string, wet = true, deviceId = "room-01"): Reading => ({ eventId: `${deviceId}-${time.replace(/\W/g, "")}`, deviceId, sensorType: "rain", source: "real", wet, observedAt: time, receivedAt: time });
 test("silence never confirms dry or online", () => {
@@ -40,4 +40,40 @@ test("rejects nonexistent calendar dates", () => {
 
 test("rejects normalized 24:00 timestamps", () => {
   assert.throws(() => validateReading({ eventId: "bad-clock", deviceId: "test-01", sensorType: "rain", wet: true, observedAt: "2026-10-04T24:00:00Z" }, now));
+});
+
+test("daily/hourly totals deduplicate each device minute and ignore dry reports", () => {
+  const readings = [row("2026-10-05T09:00:00Z"), row("2026-10-05T09:00:20Z"), row("2026-10-05T09:00:00Z", true, "test-01"), row("2026-10-05T09:01:00Z", false), row("2026-10-05T10:00:00Z")];
+  const totals = rainTotals(readings);
+  assert.equal(totals.wetMinutes, 3);
+  assert.equal(totals.wetDays, 1);
+  assert.equal(totals.byDay.get("2026-10-05"), 3);
+  const hours = totals.byHour.get("2026-10-05")!;
+  assert.equal(hours.length, 24);
+  assert.equal(hours[16], 2);
+  assert.equal(hours[17], 1);
+  assert.equal(hours.reduce((sum, count) => sum + count, 0), 3);
+});
+
+test("totals keep Bangkok midnight and hour boundaries even for out-of-order zoned reports", () => {
+  const totals = rainTotals([row("2026-10-06T01:00:00+07:00"), row("2026-10-05T16:59:59Z"), row("2026-10-05T17:00:00Z"), row("2026-10-06T00:00:30+07:00")]);
+  assert.equal(totals.wetMinutes, 3);
+  assert.equal(totals.wetDays, 2);
+  assert.equal(totals.byDay.get("2026-10-05"), 1);
+  assert.equal(totals.byDay.get("2026-10-06"), 2);
+  assert.equal(totals.byHour.get("2026-10-05")?.[23], 1);
+  assert.equal(totals.byHour.get("2026-10-06")?.[0], 1);
+  assert.equal(totals.byHour.get("2026-10-06")?.[1], 1);
+  assert.equal(thaiTime("2026-10-05T17:00:00Z"), "00:00");
+  assert.equal(thaiDate("2026-10-06", true), thaiDate("2026-10-05T17:00:00Z", true));
+});
+
+test("empty and dry-only reports never add wet days or chart minutes", () => {
+  for (const readings of [[], [row("2026-10-05T09:00:00Z", false)]]) {
+    const totals = rainTotals(readings);
+    assert.equal(totals.wetMinutes, 0);
+    assert.equal(totals.wetDays, 0);
+    assert.equal(totals.byDay.size, 0);
+    assert.equal(totals.byHour.size, 0);
+  }
 });

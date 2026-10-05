@@ -8,14 +8,19 @@ export type RainSession = {
   endKind: "dry" | "estimated" | "ongoing"; samples: number;
 };
 export const GAP_MS = 3 * 60_000;
+// Reuse ICU formatters: constructing one per sample blocks menu rendering.
+const dayFormatter = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok", year: "numeric", month: "2-digit", day: "2-digit" });
+const timeFormatter = new Intl.DateTimeFormat("th-TH", { timeZone: "Asia/Bangkok", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
+const shortDateFormatter = new Intl.DateTimeFormat("th-TH", { timeZone: "Asia/Bangkok", day: "numeric", month: "short" });
+const longDateFormatter = new Intl.DateTimeFormat("th-TH", { timeZone: "Asia/Bangkok", day: "numeric", month: "long", year: "numeric" });
 export function thaiDay(value: string | Date): string {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(value));
+  return dayFormatter.format(new Date(value));
 }
 export function thaiTime(value: string): string {
-  return new Intl.DateTimeFormat("th-TH", { timeZone: "Asia/Bangkok", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date(value));
+  return timeFormatter.format(new Date(value));
 }
 export function thaiDate(value: string, short = false): string {
-  return new Intl.DateTimeFormat("th-TH", { timeZone: "Asia/Bangkok", day: "numeric", month: short ? "short" : "long", year: short ? undefined : "numeric" }).format(new Date(value.length === 10 ? `${value}T12:00:00+07:00` : value));
+  return (short ? shortDateFormatter : longDateFormatter).format(new Date(value.length === 10 ? `${value}T12:00:00+07:00` : value));
 }
 export function shiftDay(day: string, offset: number): string {
   return new Date(Date.parse(`${day}T12:00:00Z`) + offset * 86_400_000).toISOString().slice(0, 10);
@@ -32,7 +37,11 @@ export function latestState(readings: Reading[], now = Date.now()): "wet" | "las
 }
 export function sessions(readings: Reading[], now = Date.now()): RainSession[] {
   const groups = new Map<string, Reading[]>();
-  for (const r of readings) groups.set(r.deviceId, [...(groups.get(r.deviceId) ?? []), r]);
+  for (const r of readings) {
+    const group = groups.get(r.deviceId);
+    if (group) group.push(r);
+    else groups.set(r.deviceId, [r]);
+  }
   const result: RainSession[] = [];
   for (const [deviceId, rows] of groups) {
     rows.sort((a, b) => Date.parse(a.observedAt) - Date.parse(b.observedAt) || a.eventId.localeCompare(b.eventId));
@@ -55,6 +64,25 @@ export function sessions(readings: Reading[], now = Date.now()): RainSession[] {
 // Deduplicate device + minute: these are minutes WITH a detection, not rainfall volume or continuous duration.
 export function wetMinutes(rows: Reading[]): number {
   return new Set(rows.filter(r => r.wet).map(r => `${r.deviceId}:${Math.floor(Date.parse(r.observedAt) / 60_000)}`)).size;
+}
+// One pass produces both chart dimensions with the same device/minute deduplication.
+export function rainTotals(readings: Reading[]) {
+  const seen = new Set<string>();
+  const byDay = new Map<string, number>();
+  const byHour = new Map<string, number[]>();
+  for (const r of readings) {
+    if (!r.wet) continue;
+    const minute = `${r.deviceId}:${Math.floor(Date.parse(r.observedAt) / 60_000)}`;
+    if (seen.has(minute)) continue;
+    seen.add(minute);
+    const day = thaiDay(r.observedAt);
+    const hour = Number(thaiTime(r.observedAt).split(":")[0]);
+    byDay.set(day, (byDay.get(day) ?? 0) + 1);
+    let hours = byHour.get(day);
+    if (!hours) { hours = Array<number>(24).fill(0); byHour.set(day, hours); }
+    hours[hour]++;
+  }
+  return { byDay, byHour, wetMinutes: seen.size, wetDays: byDay.size };
 }
 export function validateReading(body: unknown, now = Date.now()): Omit<Reading, "receivedAt" | "source"> {
   if (!body || typeof body !== "object" || Array.isArray(body)) throw new Error("ข้อมูลต้องเป็น JSON object");
